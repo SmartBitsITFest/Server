@@ -2,14 +2,17 @@ import cv2
 import numpy as np
 import re
 import ollama
+import easyocr
+import time
+eocr_reader = reader = easyocr.Reader(['en'], detect_network='dbnet18',
+                                      model_storage_directory='../easy_ocr_models/')  # this needs to run only once to load the model into memory
 
 
-def read_text(reader, image_bytes, details=0, paragraph=False):
+def read_text(image_bytes, details=0, paragraph=False):
     """
     Function: read_text
 
     Parameters:
-    - reader: OCR reader object.
     - image_bytes: Bytes of the image.
     - details: Level of detail (0: text only, 1: includes boxes and scores).
     - paragraph: Treats image as single paragraph (True) or separates lines (False).
@@ -19,8 +22,12 @@ def read_text(reader, image_bytes, details=0, paragraph=False):
     """
 
     nparr = np.frombuffer(image_bytes, np.uint8)
+    print("Line 1")
     image_array = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
-    result_text = reader.readtext(image_array, detail=details, paragraph=paragraph)
+    print("Line 2")
+    start = time.time()
+    result_text = eocr_reader.readtext(image_array, detail=details, paragraph=paragraph)
+    print(f"Line 3:{time.time()-start}")
     return result_text
 
 
@@ -56,6 +63,8 @@ def detect_exp_dates(text_list):
 
 async def detect_good_date(dates, model=None):
     # Generate a response to the prompt
+    if dates is None:
+        return "no valid expiration date found"
     if model is None:
         model = ollama.AsyncClient()
     prompt_template = ('I have the following dates \"{}\" separated by \"|-|\", which may contain a valid expiration '
@@ -69,8 +78,17 @@ async def detect_good_date(dates, model=None):
     return await response
 
 
-def full_exp_date_detection(reader, image_bytes):
-    result_texts = read_text(reader, image_bytes, details=0, paragraph=False)
+async def full_exp_date_detection(image_bytes):
+    print('before')
+    result_texts = read_text(image_bytes, details=0, paragraph=False)
+    print('here')
     dates = detect_exp_dates(result_texts)
-    good_date = detect_good_date(dates)
+    print(dates)
+    good_date = await detect_good_date(dates)
     return good_date
+
+with open('image', 'rb') as image:
+    start = time.time()
+    print(full_exp_date_detection(image))
+    finish = time.time()
+    print(f'It took {finish-start}')

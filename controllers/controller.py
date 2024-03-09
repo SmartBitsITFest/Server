@@ -7,12 +7,8 @@ import sys
 import json
 
 from services import barcode
-
+from services import exp_date
 router = APIRouter()
-
-eocr_reader = reader = easyocr.Reader(['en'], detect_network='dbnet18',
-                                      model_storage_directory='../easy_ocr_models/')  # this needs to run only once to load the model into memory
-
 
 async def save_image(image_data: bytes, file_path: str):
     image = Image.open(io.BytesIO(image_data))
@@ -32,11 +28,13 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         data = await websocket.receive_bytes()
         extracted_bytes = data[:4]
-        if extracted_bytes == [0x42, 0x41, 0x52, 0x43]:  # Hex value of 'BARC'
+        if extracted_bytes == b'BARC':  # Hex value of 'BARC'
             response = await barcode.read_barcode(data[4:])
             await websocket.send_text(json.dumps(response))
             await save_image(data[4:], "image.jpg")
-        elif extracted_bytes == [0x45, 0x58, 0x50, 0x44]:  # Hex value of 'EXPD'
-            pass
+        elif extracted_bytes == b'EXPD':  # Hex value of 'EXPD'
+            expiration_date = await exp_date.full_exp_date_detection(data[4:])
+            await websocket.send_text(json.dumps(expiration_date))
+            await save_image(data[4:], "image.jpg")
         else:
             await websocket.send_text("Operation not supported")
