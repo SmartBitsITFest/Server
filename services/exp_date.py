@@ -11,7 +11,7 @@ from dateutil.parser import parse
 import datetime
 eocr_reader = reader = easyocr.Reader(['en'],model_storage_directory='../easy_ocr_models/')  # this needs to run only once to load the model into memory
 
-
+ 
 def read_text(image, details=0, paragraph=False):
     """
     Function: read_text

@@ -57,6 +57,8 @@ async def read_barcode(image_bytes):
 
     # Find barcodes in the image
     barcodes = list(map(pyzbar.decode, images))
+    barcodes = [barcode for sublist in barcodes for barcode in sublist]
+    
 
     # Loop over detected barcodes
     for barcode in barcodes:

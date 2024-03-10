@@ -3,7 +3,7 @@ import json
 import cv2
 import numpy as np
 from serpapi.google_search import GoogleSearch
-
+import speech_recognition as sr
 from services import barcode
 
 async def test():
@@ -70,5 +70,23 @@ def get_product_name_if_first_try_failed(barcode_data):
     product_name = shopping_results[0]['title'].split('-')[0]
     return product_name
 
-print(get_product_name_if_first_try_failed("5942289000119"))
+#print(get_product_name_if_first_try_failed("5942289000119"))
 
+import speech_recognition as sr
+
+def test_mic_recog():
+    import gtts
+
+    tts = gtts.gTTS("Hello, how are you?")
+    tts.save("audio.mp3")
+
+    r = sr.Recognizer()  # Create an instance of the Recognizer class
+
+    audio = sr.AudioFile("audio.mp3")
+    with audio as source:
+        audio_data = r.record(source)
+        audio_data.export("audio.wav", format="wav")
+    text = r.recognize_google('audio.wav', language="en-US")
+    print(text)
+
+test_mic_recog()
