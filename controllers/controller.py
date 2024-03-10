@@ -8,6 +8,7 @@ import json
 import speech_recognition as sr
 from speech_recognition import google
 from database import db
+import uuid
 
 from services import barcode
 from services import exp_date
@@ -84,20 +85,14 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_text(json.dumps(response))
             await save_image(data[4:], "image.jpg")
         elif extracted_bytes == b'EXPD':  # Hex value of 'EXPD'
-            expiration_date = exp_date.full_exp_date_detection(data[4:])
-            await websocket.send_text(json.dumps('expiration date not functional yet'))
-            await save_image(data[4:], "image.jpg")
+            file_name = f"./images_det/image_{uuid.uuid4()}.jpg"
+            await save_image(data[4:], file_name)
+            await websocket.send_text(json.dumps({
+                'message': 'File saved'
+            }))
+        elif extracted_bytes == b'REBB':
+            print('Expiration date processing...')
+            await exp_date.process_expiration_date()
+            print('Completed processing expiration date')
         else:
             await websocket.send_text("Operation not supported")
-
-
-@router.websocket("/ws/ai")
-async def websocket_microphone_prompt(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_bytes()
-        r = sr.Recognizer()
-        text = r.recognize_google(data, language="en-US")
-        print(text)
-
-        
